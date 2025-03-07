@@ -5,7 +5,7 @@ Modeling and Simulation Final Project
 * Modeling demand based on key factors (NOT affecting supply)
 * Modeling each factors stochastically
 
-#### Checkpoint 1:
+#### Checkpoint 1:#
 * Gather all possible factors for our model from research
 * Reduce using PCA and logic by analyzing correlation with the target factor (demand or price)
 * Extension: Start modeling demand using the factors we selected by running simulations.
