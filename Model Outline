@@ -1,1 +1,67 @@
-#Simulation-Based Electricity Demand Forecasting Model
+# Simulation-Based Electricity Demand Forecasting Model
+
+## Step 1: Overall Model Structure
+The electricity demand $D_t$ at time $t$ can be expressed as a sum of deterministic factors, time-series dynamics, and stochastic residuals:
+
+$D_t = D_t^{deterministic} + D_t^{timeseries} + \epsilon_t^{stochastic}$
+
+## Step 2: Deterministic Component
+A multivariable regression model is used with explicitly defined explanatory variables:
+$D_t^{deterministic} = \beta_0 + \beta_1 TempAvg_t + \beta_2 TempMin_t + \beta_3 TempMax_t + \beta_4 Humidity_t + \beta_5 Precipitation_t + \beta_6 WindSpeed_t + \beta_7 SolarIrradiance_t$
+### Additional factors:
+- **Seasonality:** $\sum_{m=1}^{11} \gamma_m Month_{m,t}$
+- **Weekly cycle:** $\sum_{d=1}^{6} \delta_d DayOfWeek_{d,t}$
+- **Hourly cycle:** $\sum_{h=1}^{23} \theta_h HourOfDay_{h,t}$
+- **Special events and economic factors:**
+  - $\lambda_1 Holiday_t + \lambda_2 SpecialEvent_t + \lambda_3 ExtremeEvent_t$
+  - $\eta_1 GDP_t + \eta_2 UnemploymentRate_t + \eta_3 ConsumerConfidence_t + \eta_4 IndustrialProduction_t + \eta_5 Population_t$
+  - $\rho_1 RemoteWorkIndex_t + \rho_2 LifestyleTrendIndex_t + \rho_3 SportCulturalEvent_t$
+
+## Step 3: Principal Component Analysis (PCA) for Dimensionality Reduction
+If multicollinearity exists, replace original variables with principal components (PCs):
+$D_t^{deterministic} = \alpha_0 + \sum_{j=1}^{J} \alpha_j PC_{j,t}$
+- $PC_{j,t}$ : j-th principal component at time $t$
+- $J$ : Number of principal components retained (>85-95% variance explained)
+
+## Step 4: Time-Series Dynamics (ARIMA Structure)
+Residuals from the deterministic model:
+$u_t = D_t - D_t^{deterministic}$
+Are modeled using ARIMA(p,d,q):
+$\Phi_p(L)(1 - L)^d u_t = \Theta_q(L) \epsilon_t$
+where:
+- $\Phi_p(L) = 1 - \phi_1 L - \phi_2 L^2 - \dots - \phi_p L^p$ (AR terms)
+- $\Theta_q(L) = 1 + \theta_1 L + \theta_2 L^2 + \dots + \theta_q L^q$ (MA terms)
+- $L$ is the lag operator, $d$ is the differencing order.
+
+## Step 5: Stochastic Dynamics (GARCH Volatility Modeling)
+If residuals $\epsilon_t$ show volatility clustering, use a GARCH(r,s) model:
+$\epsilon_t = \sigma_t z_t, \quad z_t \sim N(0,1)$
+Volatility equation (GARCH(1,1)):
+$\sigma_t^2 = \omega + \gamma \epsilon_{t-1}^2 + \delta \sigma_{t-1}^2$
+
+## Step 6: Monte Carlo Simulation of Demand Forecasts
+### Deterministic forecast:
+$\hat{D}_{t+h | t}^{deterministic} = f(\hat{X}_{t+h | t})$
+### Stochastic ARIMA-GARCH simulation:
+$u_{t+h | t}^{(m)} = \sum_{i=1}^{p} \phi_i u_{t+h-i | t}^{(m)} + \sum_{j=1}^{q} \theta_j \epsilon_{t+h-j | t}^{(m)} + \sigma_{t+h | t}^{(m)} z_{t+h}^{(m)}$
+where $z_{t+h}^{(m)} \sim N(0,1)$.
+
+Thus, simulated total demand:
+$D_{t+h | t}^{(m)} = \hat{D}_{t+h | t}^{deterministic} + u_{t+h | t}^{(m)}$
+Repeat for $m = 1, ..., M$ scenarios.
+
+## Step 7: Statistical Analysis of Simulations
+- **Mean Forecast:**
+$\bar{D}_{t+h} = \frac{1}{M} \sum_{m=1}^{M} D_{t+h | t}^{(m)}$
+- **Prediction Intervals (PI):** Compute quantiles (e.g., 5%, 95%).
+- **Probabilistic Metrics:** Continuous Ranked Probability Score (CRPS).
+
+## Step 8: Final Complete Model
+Combining all components:
+$D_t = \alpha_0 + \sum_{j=1}^{J} \alpha_j PC_{j,t} + \Phi_p(L)(1 - L)^d u_t = \Theta_q(L) \epsilon_t + \epsilon_t = \sigma_t z_t$
+
+## Summary of the Mathematical Model
+Final equation:
+$D_t = \beta_0 + \sum_{i=1}^{n} \beta_i X_{i,t} + \Phi_p(L)(1 - L)^d u_t = \Theta_q(L) \epsilon_t + \epsilon_t = \sigma_t z_t, \quad z_t \sim N(0,1)$
+### Explicit Variables
+$X_{i,t}$: Temperature, Humidity, Precipitation, Wind Speed, Solar irradiance, Season, Calendar dummies, GDP, Unemployment, Population, Consumer Confidence, Remote Work Index, Lifestyle Trends, and Events.
